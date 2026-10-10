@@ -1,3 +1,4 @@
+![RepoBuddy AI](banner.svg) 
 # RepoBuddy AI
 
 RepoBuddy AI helps beginners understand GitHub issues so they can
