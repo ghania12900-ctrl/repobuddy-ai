@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoBuddy AI</title>
+<style>
+body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.6}
+header{background:#4338ca;padding:1.5rem;text-align:center}
+h1{margin:0}
+main{max-width:800px;margin:auto;padding:1rem}
+.card{background:#1e293b;border-radius:12px;padding:1rem;margin:1rem 0}
+textarea{width:100%;box-sizing:border-box;min-height:160px;background:#273449;color:#e2e8f0;border:1px solid #3b4a63;border-radius:8px;padding:.7rem;font-size:1rem}
+button{background:#6366f1;color:#fff;border:0;border-radius:8px;padding:.6rem 1.1rem;font-size:1rem;cursor:pointer;margin-top:.6rem}
+button:disabled{opacity:.5}
+.err{color:#f87171}
+[hidden]{display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>RepoBuddy AI</h1>
+<p>Paste a GitHub issue and get a beginner-friendly plan.</p>
+</header>
+<main>
+<div class="card">
+<textarea id="issue" placeholder="Paste a GitHub issue here..."></textarea>
+<button id="go">Analyze issue</button>
+<p id="err" class="err" hidden></p>
+</div>
+<div id="out" hidden></div>
+</main>
+<script>
+const go = document.getElementById("go");
+const issue = document.getElementById("issue");
+const err = document.getElementById("err");
+const out = document.getElementById("out");
+const sections = [
+  ["Beginner-friendly explanation", "explanation"],
+  ["Step-by-step implementation", "steps"],
+  ["Files to inspect", "files_to_inspect"],
+  ["Suggested tests", "tests"],
+  ["Completion checklist", "checklist"]
+];
+
+go.onclick = async () => {
+  const text = issue.value.trim();
+  err.hidden = true;
+  out.hidden = true;
+  out.innerHTML = "";
+  if (text.length < 15) {
+    err.textContent = "Please paste the full issue text.";
+    err.hidden = false;
+    return;
+  }
+  go.disabled = true;
+  go.textContent = "Analyzing... (can take a minute)";
+  try {
+    const r = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ issue: text })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Request failed");
+    sections.forEach(([title, key]) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const h = document.createElement("h2");
+      h.textContent = title;
+      card.appendChild(h);
+      if (Array.isArray(d[key])) {
+        const ul = document.createElement("ul");
+        d[key].forEach(x => {
+          const li = document.createElement("li");
+          li.textContent = x;
+          ul.appendChild(li);
+        });
+        card.appendChild(ul);
+      } else {
+        const p = document.createElement("p");
+        p.style.whiteSpace = "pre-wrap";
+        p.textContent = d[key] || "";
+        card.appendChild(p);
+      }
+      out.appendChild(card);
+    });
+    out.hidden = false;
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+  }
+  go.disabled = false;
+  go.textContent = "Analyze issue";
+};
+</script>
+</body>
+</html>
